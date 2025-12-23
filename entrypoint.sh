@@ -18,6 +18,13 @@ if [ -n "$VAULT_ADDR" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_SECRET_PATH" ];
             # Export each key-value pair as an environment variable
             # We use jq to format them for exporting
             eval "$(echo "$DATA" | jq -r 'to_entries | .[] | "export \(.key | gsub("\\."; "_"))=\"\(.value)\""')"
+            
+            # Specifically ensure api.key is available as API_KEY if it exists
+            API_KEY_VAL=$(echo "$DATA" | jq -r '."api.key" // .api_key // empty')
+            if [ -n "$API_KEY_VAL" ]; then
+                export API_KEY="$API_KEY_VAL"
+                echo "Exported API_KEY from Vault secret."
+            fi
         else
             echo "Warning: Vault response did not contain data. Check your secret path and permissions."
             echo "Response: $RESPONSE"
@@ -26,6 +33,10 @@ if [ -n "$VAULT_ADDR" ] && [ -n "$VAULT_TOKEN" ] && [ -n "$VAULT_SECRET_PATH" ];
         echo "Error: Failed to fetch secrets from Vault. Check connectivity and credentials."
     fi
 fi
+
+# Set default BACKEND_URL if not provided
+export BACKEND_URL="${BACKEND_URL:-http://host.docker.internal:8080}"
+echo "Using BACKEND_URL: $BACKEND_URL"
 
 # Execute the CMD from Dockerfile
 exec "$@"
