@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Docker Compose Up",
+            "type": "shell",
+            "command": "docker compose up --build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "nextjs",
+                "pattern": {
+                    "regexp": ".*"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "Ready in .*"
+                }
+            }
+        },
+        {
+            "label": "Docker Compose Down",
+            "type": "shell",
+            "command": "docker compose down",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
+}

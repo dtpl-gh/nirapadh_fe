@@ -2,13 +2,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Next.js: debug server-side",
+            "name": "Next.js: Docker Debug",
+            "type": "node",
+            "request": "attach",
+            "port": 9229,
+            "address": "localhost",
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app",
+            "preLaunchTask": "Docker Compose Up",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        },
+        {
+            "name": "Next.js: Docker Start",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "echo",
+            "runtimeArgs": [
+                "Docker started"
+            ],
+            "preLaunchTask": "Docker Compose Up"
+        },
+        {
+            "name": "Next.js: Local Server Debug",
             "type": "node-terminal",
             "request": "launch",
             "command": "npm run dev"
         },
         {
-            "name": "Next.js: debug client-side",
+            "name": "Next.js: Local Client Debug",
             "type": "chrome",
             "request": "launch",
             "url": "http://localhost:3000"
