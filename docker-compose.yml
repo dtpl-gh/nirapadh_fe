@@ -6,10 +6,16 @@ services:
     ports:
       - "3000:3000"
       - "9229:9229"
+    # Load environment variables from .env.docker file
+    env_file:
+      - .env.docker
+    # Override with environment variables (takes precedence over env_file)
     environment:
       - NODE_ENV=production
       - NODE_OPTIONS=--inspect=0.0.0.0:9229
+      # Backend configuration (can be overridden via command: docker-compose up --env-file .env.custom)
       - VAULT_ADDR=${VAULT_ADDR:-http://host.docker.internal:8200}
       - VAULT_TOKEN=${VAULT_TOKEN:-root}
       - VAULT_SECRET_PATH=${VAULT_SECRET_PATH:-secret/data/nirapadh}
       - BACKEND_URL=${BACKEND_URL:-http://host.docker.internal:8080}
+      - API_KEY=${API_KEY:-}

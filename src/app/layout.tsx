@@ -1,41 +1,26 @@
-import type { Metadata, Viewport } from 'next';
-import { DM_Sans } from 'next/font/google';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
-import { ThemeProvider } from '../components/theme-provider';
-import { Toaster } from '../components/ui/toaster';
-import ClientAuthProvider from '@/components/ClientAuthProvider';
+import { ThemeProvider } from '@/components/theme-provider';
 
-const inter = DM_Sans({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Nirāpadh',
-  description: 'Your cybersecurity portal',
-  icons: {
-    icon: '/favicon.png',
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: '#000000',
+  title: 'Nirāpadh - Cybersecurity Suite',
+  description: 'Advanced cybersecurity protection and threat management',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ClientAuthProvider>{children}</ClientAuthProvider>
+      <body className={inter.className} suppressHydrationWarning={true}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          {children}
         </ThemeProvider>
-        <Toaster />
       </body>
     </html>
   );

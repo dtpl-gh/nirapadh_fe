@@ -1,0 +1,192 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { fetchQuestionById, updateQuestion } from '../lib/api';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { fetchCyberSecurityFunctions } from '@/app/(protected)/master/cyber-security-function/lib/api';
+import { CyberSecurityFunctionResponse } from '@/app/(protected)/master/cyber-security-function/lib/types';
+
+interface EditQuestionPageProps {
+    params: Promise<{
+        id: string;
+    }>;
+}
+
+export default function EditQuestionPage({ params }: EditQuestionPageProps) {
+    const router = useRouter();
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [functions, setFunctions] = useState<CyberSecurityFunctionResponse[]>([]);
+    const [formData, setFormData] = useState({
+        questionText: '',
+        status: true,
+        functionId: '',
+    });
+
+    const questionId = React.use(params).id;
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setLoading(true);
+                const [question, functionsData] = await Promise.all([
+                    fetchQuestionById(questionId),
+                    fetchCyberSecurityFunctions(),
+                ]);
+
+                console.log('API Response for Functions:', functionsData);
+
+                let functionList = [];
+                if (Array.isArray(functionsData)) {
+                    functionList = functionsData;
+                } else if ((functionsData as any).data && Array.isArray((functionsData as any).data)) {
+                    functionList = (functionsData as any).data;
+                } else if ((functionsData as any).content && Array.isArray((functionsData as any).content)) {
+                    functionList = (functionsData as any).content;
+                }
+
+                console.log('Parsed Function List:', functionList);
+                setFunctions(functionList);
+
+                setFormData({
+                    questionText: question.questionText,
+                    status: question.status,
+                    functionId: question.functionId || '',
+                });
+            } catch (err) {
+                console.error('Failed to fetch data', err);
+                toast({
+                    title: 'Error',
+                    description: 'Failed to load question details.',
+                    variant: 'destructive',
+                });
+                router.push('/setting/question');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (questionId) {
+            loadData();
+        }
+    }, [questionId, router, toast]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setSaving(true);
+            await updateQuestion(questionId, formData);
+            toast({
+                title: 'Success',
+                description: 'Question updated successfully.',
+            });
+            router.push('/setting/question');
+        } catch (err) {
+            console.error('Failed to update question', err);
+            toast({
+                title: 'Error',
+                description: 'Failed to update question.',
+                variant: 'destructive',
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+        );
+    }
+
+
+
+    return (
+        <div className="p-6 max-w-2xl mx-auto space-y-6">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Edit Question</h1>
+                    <p className="text-gray-500">Update question information.</p>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="questionText">Question Text</Label>
+                        <Textarea
+                            id="questionText"
+                            value={formData.questionText}
+                            onChange={(e) => setFormData({ ...formData, questionText: e.target.value })}
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="functionId">Cyber Security Function</Label>
+                        <Select
+                            value={formData.functionId}
+                            onValueChange={(value) => setFormData({ ...formData, functionId: value })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a function" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {functions.length > 0 ? (
+                                    functions.map((func) => (
+                                        <SelectItem key={func.id} value={func.id}>
+                                            {func.functionName}
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="none" disabled>
+                                        No functions available
+                                    </SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="status"
+                            checked={formData.status}
+                            onCheckedChange={(checked) => setFormData({ ...formData, status: checked })}
+                        />
+                        <Label htmlFor="status">Active</Label>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                        <Button type="button" variant="outline" className="mr-2" onClick={() => router.back()}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={saving}>
+                            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            Update Question
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
