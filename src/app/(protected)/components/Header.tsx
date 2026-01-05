@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,7 +16,7 @@ import React, {
   useEffect,
   useRef,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,7 +37,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import Link from 'next/link';
-import axios from 'axios';
+import axiosInstance from '@/lib/axios';
 
 interface Page {
   name: string;
@@ -61,48 +60,86 @@ interface UserDetails {
   role: string;
   status: boolean;
   user_id: string;
+  profilePicUrl?: string;
 }
 
 interface HeaderProps {
   role: string | null;
   isAuthenticated: boolean;
-  userId: string | null;
 }
 
 const pages: Page[] = [
   {
     name: 'Dashboard',
-    path: '/org/admindashboard',
+    path: '/dashboard',
     category: 'Main',
     icon: '📊',
   },
-  { name: 'Projects', path: '/org/projects', category: 'Main', icon: '📁' },
   {
-    name: 'Admin Users',
-    path: '/org/adminusers',
-    category: 'Users',
-    icon: '👥',
+    name: 'Clients',
+    path: '/masters/client',
+    category: 'Master Data',
+    icon: '🏢',
   },
-  { name: 'Industry', path: '/org/industry', category: 'Settings', icon: '🏢' },
-  { name: 'Identify', path: '/org/identify', category: 'Security', icon: '🔍' },
-  { name: 'Protect', path: '/org/protect', category: 'Security', icon: '🛡️' },
-  { name: 'Detect', path: '/org/detect', category: 'Security', icon: '👁️' },
-  { name: 'Respond', path: '/org/respond', category: 'Security', icon: '⚡' },
-  { name: 'Recover', path: '/org/recover', category: 'Security', icon: '🔄' },
-  { name: 'Govern', path: '/org/govern' },
-  { name: 'Answers', path: '/org/answers', category: 'Content', icon: '💬' },
+  {
+    name: 'Consultants',
+    path: '/masters/consultant',
+    category: 'Master Data',
+    icon: '👨‍💼',
+  },
+  {
+    name: 'User Management',
+    path: '/masters/user',
+    category: 'Master Data',
+    icon: '👤',
+  },
+  {
+    name: 'Role Management',
+    path: '/settings/role',
+    category: 'Settings',
+    icon: '🔑',
+  },
+  {
+    name: 'Industry',
+    path: '/settings/industry',
+    category: 'Master Data',
+    icon: '🏭',
+  },
+  {
+    name: 'Questions',
+    path: '/settings/question',
+    category: 'Settings',
+    icon: '❓',
+  },
+  {
+    name: 'System Config',
+    path: '/settings/system-config',
+    category: 'Settings',
+    icon: '⚙️',
+  },
+  {
+    name: 'Appointments',
+    path: '/appointment',
+    category: 'Modules',
+    icon: '📅',
+  },
+  {
+    name: 'Assessments',
+    path: '/assessment',
+    category: 'Modules',
+    icon: '📋',
+  },
   {
     name: 'Conversations',
-    path: '/org/conversations',
-    category: 'Content',
-    icon: '💭',
+    path: '/conversations',
+    category: 'Modules',
+    icon: '💬',
   },
-  { name: 'Settings', path: '/org/settings', category: 'Settings', icon: '⚙️' },
-  { name: 'End Users', path: '/org/endusers', category: 'Users', icon: '👤' },
 ];
 
-export default function Header({ role, isAuthenticated, userId }: HeaderProps) {
+export default function Header({ role, isAuthenticated }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredPages, setFilteredPages] = useState<Page[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -115,26 +152,50 @@ export default function Header({ role, isAuthenticated, userId }: HeaderProps) {
   const [userdetails, setUserDetails] = useState<UserDetails | null>(null);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+  const getPageTitle = (path: string, pages: Page[]): string => {
+    const exactMatch = pages.find(p => p.path === path);
+    if (exactMatch) return exactMatch.name;
+
+    if (path.endsWith('/create')) {
+      const parentPath = path.replace('/create', '');
+      const parent = pages.find(p => p.path === parentPath);
+      if (parent) return `Create ${parent.name.replace('Management', '').replace('Master', '').trim()}`;
+      return 'Create Item';
+    }
+
+    const sortedPages = [...pages].sort((a, b) => b.path.length - a.path.length);
+    const parentMatch = sortedPages.find(p => path.startsWith(p.path + '/'));
+
+    if (parentMatch) {
+      return `Edit ${parentMatch.name.replace('Management', '').replace('Master', '').trim()}`;
+    }
+
+    return 'Dashboard';
+  };
+
+  const currentPage = { name: getPageTitle(pathname, pages) };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
-        if (!userId) {
-          console.log('User ID is not defined in header admin');
-          return;
-        }
+        const response = await axiosInstance.get('/auth');
+        const data = response.data;
 
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/admin-user-details/${userId}`
-        );
-        setUserDetails(response.data.user_details);
+        setUserDetails({
+          username: data.username,
+          user_email: data.email,
+          role: data.roleName,
+          status: data.enabled,
+          user_id: data.id,
+          profilePicUrl: data.profilePicUrl
+        });
+
       } catch (err) {
         console.error('Error fetching user details:', err);
       }
     };
-
     fetchUserDetails();
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -197,7 +258,7 @@ export default function Header({ role, isAuthenticated, userId }: HeaderProps) {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await axiosInstance.post('/api/auth/logout', {}, { baseURL: '' });
       router.replace('/login'); // Redirect to login
     } catch (error) {
       console.error('Logout failed:', error);
@@ -224,11 +285,11 @@ export default function Header({ role, isAuthenticated, userId }: HeaderProps) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="hidden md:block">
-              <h2 className="text-lg font-semibold text-gray-800">Dashboard</h2>
-              <p className="text-sm text-gray-500">
-                Welcome back, {userdetails?.username}
-              </p>
+            <div className="hidden md:block flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800">
+                <span className="text-lg mr-2">{pages.find(p => p.name === currentPage.name)?.icon}</span>
+                {currentPage.name}
+              </h2>
             </div>
           </div>
 

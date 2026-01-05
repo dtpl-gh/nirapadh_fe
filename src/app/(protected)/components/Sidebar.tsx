@@ -106,19 +106,19 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     label: 'Masters',
     icon: 'Database',
     children: [
-      { label: 'Client', href: '/master/client', icon: 'Briefcase' },
-      { label: 'Consultant', href: '/master/consultant', icon: 'UserCog' },
+      { label: 'Client', href: '/masters/client', icon: 'Briefcase' },
+      { label: 'Consultant', href: '/masters/consultant', icon: 'UserCog' },
+      { label: 'User', href: '/masters/user', icon: 'Users' },
     ]
   },
   {
     label: 'Settings',
     icon: 'Settings',
     children: [
-      { label: 'Industry', href: '/setting/industry', icon: 'Factory' },
-      { label: 'Question', href: '/setting/question', icon: 'FileQuestion' },
-      { label: 'User', href: '/setting/user', icon: 'Users' },
-      { label: 'Role', href: '/setting/role', icon: 'ShieldCheck' },
-      { label: 'System Config', href: '/setting/system-config', icon: 'Sliders' },
+      /*{ label: 'Role', href: '/settings/role', icon: 'ShieldCheck' },*/
+      { label: 'Industry', href: '/settings/industry', icon: 'Factory' },
+      { label: 'Question', href: '/settings/question', icon: 'FileQuestion' },
+      { label: 'System Config', href: '/settings/system-config', icon: 'Sliders' },
     ]
   },
 ];
@@ -139,8 +139,6 @@ const CONSULTANT_NAV_ITEMS: NavItem[] = [
 function Sidebar({ role, isAuthenticated, userId }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [userdetails, setUserDetails] = useState<UserDetails | null>(null);
 
   const toggleSidebar = () => setCollapsed(!collapsed);
 
@@ -153,41 +151,6 @@ function Sidebar({ role, isAuthenticated, userId }: SidebarProps) {
   } else if (role === PredefinedRole.ROLE_CONSULTANT) {
     navSource = CONSULTANT_NAV_ITEMS;
   }
-
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        if (!userId || !role) {
-          // console.log('User ID or role is not defined in sidebar');
-          return;
-        }
-
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/get-user-details/${userId}?role=${role}`
-        );
-
-        const details = response.data.data.user_details;
-
-        // Normalize based on role
-        const normalizedDetails: UserDetails = {
-          username:
-            role === PredefinedRole.ROLE_CLIENT
-              ? details.fullname || details.user_fullname
-              : details.fullname || details.username,
-          user_email: details.email || details.user_email,
-          role: details.role,
-          status: details.status,
-          user_id: details.login_id,
-        };
-
-        setUserDetails(normalizedDetails);
-      } catch (err) {
-        console.error('Error fetching user details:', err);
-      }
-    };
-
-    fetchUserDetails();
-  }, [userId, role]);
 
   // Auto-collapse on mobile
   useEffect(() => {
@@ -217,8 +180,8 @@ function Sidebar({ role, isAuthenticated, userId }: SidebarProps) {
     const hasChildren = !!item.children;
     const expanded = isExpanded(item.label);
 
-    // Auto-expand if child is active (on mount or path change could do this via effect, 
-    // but simple check here helps highlighting parent). 
+    // Auto-expand if child is active (on mount or path change could do this via effect,
+    // but simple check here helps highlighting parent).
     // Actually sidebar usually auto-expands active parents. Let's stick to manual toggle + active indicator.
 
     const hasNotification = item.badge && Number.parseInt(item.badge) > 0;
@@ -259,8 +222,6 @@ function Sidebar({ role, isAuthenticated, userId }: SidebarProps) {
               ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 shadow-md border border-blue-100'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               } ${isChild ? 'ml-6' : ''}`}
-            onMouseEnter={() => setHoveredItem(item.label)}
-            onMouseLeave={() => setHoveredItem(null)}
           >
             {isActive && !collapsed && !isChild && (
               <motion.div

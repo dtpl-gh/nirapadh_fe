@@ -20,17 +20,23 @@ export default async function Layout({ children }: LayoutProps) {
 
     if (token) {
         try {
+            console.log("Layout: Token found in cookies");
             const decoded = jose.decodeJwt(token);
+            console.log("Layout: Decoded JWT:", JSON.stringify(decoded, null, 2));
+
             let role = (decoded.scope as string) || (decoded.role as any) || PredefinedRole.ROLE_CLIENT;
 
             user = {
-                userId: (decoded.userId as string) || '',
+                userId: (decoded.userId as string) || (decoded.sub as string) || '',
                 role: role,
                 exp: (decoded.exp as number) || 0,
             };
+            console.log("Layout: Constructed User:", user);
         } catch (e) {
             console.error("Failed to decode token in layout", e);
         }
+    } else {
+        console.log("Layout: No token found in cookies");
     }
 
     const userData = {

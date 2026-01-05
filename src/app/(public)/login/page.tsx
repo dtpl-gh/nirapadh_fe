@@ -27,17 +27,10 @@ export default function Login() {
 
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/auth/login`, { username: email, password });
-
       if (response.status === 200) {
-        // Assume token is in response.data.access_token based on API route proxy
-        // Since route.ts returns { message, success, ...data }
-        // and checks data.token || data.access_token
-        // We need to inspect what exactly is returned. 
-        // Based on route.ts: const res = NextResponse.json({ message: 'Login successful', success: true, ...data }, { status: 200 });
-        // So the token should be at the top level of response.data if it was in data.
-
         const token = response.data.token || response.data.access_token;
-
+        // Set token in cookie so middleware and server components can read it
+        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
         toast.success('Login successful!');
         router.push('/dashboard');
       } else if (response.status === 202) {

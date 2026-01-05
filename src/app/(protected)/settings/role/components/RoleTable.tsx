@@ -1,0 +1,185 @@
+'use client';
+
+import React from 'react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@components/ui/table';
+import { Button } from '@components/ui/button';
+import { Input } from '@components/ui/input';
+import { Edit, Trash2, MoreHorizontal, Shield, Filter, ArrowUpDown, ArrowUp, ArrowDown, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { RoleResponse } from '../lib/types';
+import { Badge } from '@components/ui/badge';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@components/ui/alert-dialog';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@components/ui/popover';
+
+interface RoleTableProps {
+    roles: RoleResponse[];
+    onDelete: (id: string) => void;
+    filters: Record<string, any>;
+    onFilterChange: (key: string, value: any) => void;
+    sort?: { key: string; direction: 'asc' | 'desc' } | null;
+    onSortChange: (key: string) => void;
+    onCreate: () => void;
+}
+
+import { FilterWidget } from '@/app/(protected)/components/FilterWidget';
+
+export const RoleTable: React.FC<RoleTableProps> = ({ roles, onDelete, filters, onFilterChange, sort, onSortChange, onCreate }) => {
+    const router = useRouter();
+
+    const [deleteId, setDeleteId] = React.useState<string | null>(null);
+
+    const handleFilterChange = (key: string, value: string) => {
+        onFilterChange(key, value);
+    };
+
+    const renderColumnHeader = (label: string, columnKey: string, filterable = true, sortable = true) => {
+        return (
+            <div className="flex items-center space-x-2">
+                <div className="flex items-center cursor-pointer" onClick={() => sortable && onSortChange(columnKey)}>
+                    <span className="mr-1">{label}</span>
+                    {sortable && (
+                        sort?.key === columnKey ? (
+                            sort.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                        ) : (
+                            <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                        )
+                    )}
+                </div>
+                {filterable && (
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Filter className={`h-4 w-4 ${filters[columnKey] ? 'text-blue-500 fill-blue-500' : 'text-gray-400'}`} />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-60 p-2">
+                            <FilterWidget
+                                label={label}
+                                currentValue={filters[columnKey] || ''}
+                                onApply={(val) => handleFilterChange(columnKey, val)}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                )}
+            </div>
+        );
+    };
+
+
+
+    const handleDelete = () => {
+        if (deleteId) {
+            onDelete(deleteId);
+            setDeleteId(null);
+        }
+    };
+
+    return (
+        <div className="rounded-md border">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>{renderColumnHeader('Name', 'name')}</TableHead>
+                        <TableHead>{renderColumnHeader('Description', 'description')}</TableHead>
+                        <TableHead className="text-right">
+                            <div className="flex items-center justify-end">
+                                <span className="mr-2">Actions</span>
+                                <Button onClick={onCreate} size="icon" className="h-6 w-6">
+                                    <Plus className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {roles && roles.length > 0 ? (
+                        roles.map((role) => (
+                            <TableRow key={role.id}>
+                                <TableCell className="font-medium">{role.name}</TableCell>
+                                <TableCell>{role.description}</TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => router.push(`/settings/role/${role.id}`)}>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => router.push(`/settings/role/${role.id}/map-policy`)}>
+                                                <Shield className="mr-2 h-4 w-4" />
+                                                Map Policy
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onSelect={() => setDeleteId(role.id)}
+                                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={3} className="h-24 text-center">
+                                No roles found.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+
+            <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the role.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    );
+};
